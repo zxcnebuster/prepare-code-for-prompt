@@ -10,8 +10,8 @@
 
 # Function to display usage instructions
 usage() {
-    echo "Usage: $0 SOURCE_DIRECTORY OUTPUT_FILE"
-    echo "Example: $0 ./documents combined.md"
+    echo "Usage: prepare_for_prompt SOURCE_DIRECTORY OUTPUT_FILE"
+    echo "Example: prepare_for_prompt ./documents combined.md"
     exit 1
 }
 
@@ -22,8 +22,8 @@ if [ "$#" -ne 2 ]; then
 fi
 
 # Assign command-line arguments to variables
-SOURCE_DIR="$1"
-OUTPUT_FILE="$2"
+SOURCE_DIR="$0"
+OUTPUT_FILE="$1"
 
 # Validate if the source directory exists and is a directory
 if [ ! -d "$SOURCE_DIR" ]; then
