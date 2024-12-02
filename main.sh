@@ -1,11 +1,9 @@
-#!/bin/bash
-
 # -----------------------------------
-# Script: concatenate_files.sh
+# Script: main.sh
 # Description: Iterates through all files in a specified directory
 #              and concatenates their contents into a single Markdown or text file.
 #              Skips files in the 'env' folder.
-# Usage: ./concatenate_files.sh /path/to/source_directory /path/to/output.md
+# Usage: ./main.sh /path/to/source_directory /path/to/output.md
 # -----------------------------------
 
 # Function to display usage instructions
