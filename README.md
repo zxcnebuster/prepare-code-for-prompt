@@ -2,9 +2,11 @@
 
 This repository contains `concatenate_files.sh`, a script that iterates through all files in a specified directory and concatenates their contents into a single Markdown or text file. It skips files in the `env` folder.
 
-## Usage
+## Installation
 
-To run the script, use the following command:
+To install the script either clone repository via
+
+To install the script, run the following command:
 
 ```bash
 ./concatenate_files.sh /path/to/source_directory /path/to/output.md
