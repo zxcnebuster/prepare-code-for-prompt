@@ -1,71 +1,106 @@
+#!/bin/bash
 # -----------------------------------
 # Script: main.sh
 # Description: Iterates through all files in a specified directory
 #              and concatenates their contents into a single Markdown or text file.
-#              Skips files in the 'env' folder.
-# Usage: ./main.sh /path/to/source_directory /path/to/output.md
+#              Skips files in specified ignore folders.
+# Usage: ./main.sh /path/to/source_directory /path/to/output.md [IGNORE_PATHS...]
+# Example: ./main.sh ./documents combined.md env cache tmp
 # -----------------------------------
 
-# Function to display usage instructions
 usage() {
-    echo "Usage: prepare_for_prompt SOURCE_DIRECTORY OUTPUT_FILE"
-    echo "Example: prepare_for_prompt ./documents combined.md"
+    echo "Usage: $0 SOURCE_DIRECTORY OUTPUT_FILE [IGNORE_PATHS...]"
+    echo "Example: $0 ./documents combined.md env cache tmp"
     exit 1
 }
 
-# Check if the correct number of arguments is provided
-if [ "$#" -ne 2 ]; then
-    echo "Error: Incorrect number of arguments."
+if [ "$#" -lt 2 ]; then
+    echo "Error: Insufficient number of arguments."
     usage
 fi
 
-# Assign command-line arguments to variables
-SOURCE_DIR="$0"
-OUTPUT_FILE="$1"
+SOURCE_DIR="$1"
+OUTPUT_FILE="$2"
+shift 2
+IGNORE_PATHS=("$@")
 
-# Validate if the source directory exists and is a directory
 if [ ! -d "$SOURCE_DIR" ]; then
     echo "Error: Source directory '$SOURCE_DIR' does not exist or is not a directory."
     exit 1
 fi
+
+OUTPUT_DIR=$(dirname "$OUTPUT_FILE")
+OUTPUT_FILENAME=$(basename "$OUTPUT_FILE")
+
+if [ ! -d "$OUTPUT_DIR" ]; then
+    mkdir -p "$OUTPUT_DIR"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to create directory '$OUTPUT_DIR'."
+        exit 1
+    fi
+fi
+
+# Create temp file
+TEMP_OUTPUT=$(mktemp) || { echo "Error: Failed to create a temporary file."; exit 1; }
+
+# Cleanup function to remove temp file on exit or interruption
+cleanup() {
+    rm -f "$TEMP_OUTPUT"
+    exit
+}
+
+# Trap signals to ensure cleanup is performed
+trap cleanup INT TERM EXIT
+
+echo "# This file contains concatenated content from all files in the directory '$SOURCE_DIR', excluding specified folders." > "$TEMP_OUTPUT"
+
+# Build find command with ignore paths
+FIND_CMD=(find "$SOURCE_DIR" -type f ! -path "*/.*")
+for ignore in "${IGNORE_PATHS[@]}"; do
+    FIND_CMD+=(! -path "*/$ignore/*" ! -path "*/$ignore")
+done
+
+"${FIND_CMD[@]}" | while IFS= read -r file; do
+    echo "Processing '$file'..."
+
+    RELATIVE_PATH="${file#$SOURCE_DIR/}"
+
+    echo -e "\n# File: $RELATIVE_PATH" >> "$TEMP_OUTPUT"
+
+    cat "$file" >> "$TEMP_OUTPUT"
+
+    echo -e "\n" >> "$TEMP_OUTPUT"
+done
+
+# Remove the trap as processing is done
+trap - INT TERM EXIT
 
 # Check if the output file already exists, prompt user for action if it does
 if [ -e "$OUTPUT_FILE" ]; then
     read -p "Output file '$OUTPUT_FILE' already exists. Overwrite? (y/n): " choice
     case "$choice" in
         y|Y ) 
-            # User chose to overwrite the existing output file, truncating it
-            > "$OUTPUT_FILE"  # Truncate the file
+            # Move the temporary file to the output file
+            mv "$TEMP_OUTPUT" "$OUTPUT_FILE"
+            if [ $? -ne 0 ]; then
+                echo "Error: Failed to move temporary file to '$OUTPUT_FILE'."
+                exit 1
+            fi
             ;;
         * )
-            # User chose not to overwrite, cancel operation
+            # User chose not to overwrite, remove the temporary file and cancel operation
+            rm -f "$TEMP_OUTPUT"
             echo "Operation canceled."
             exit 1
             ;;
     esac
 else
-    # Create the output file if it does not exist
-    touch "$OUTPUT_FILE"
+    # Move the temporary file to the output file
+    mv "$TEMP_OUTPUT" "$OUTPUT_FILE"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to move temporary file to '$OUTPUT_FILE'."
+        exit 1
+    fi
 fi
 
-# Add a line at the start of the output file to describe its purpose
-echo "# This file contains concatenated content from all files in the directory '$SOURCE_DIR', excluding the 'env' folder." > "$OUTPUT_FILE"
-
-# Iterate through each file in the source directory, excluding the 'env' folder
-# Using find to handle files with spaces and special characters
-find "$SOURCE_DIR" -type f ! -path "*/env/*" | while IFS= read -r file; do
-    echo "Processing '$file'..."
-    
-    # Add the file name and relative location to the output file
-    # This makes it clear where each file's content begins
-    echo -e "\n# File: ${file#$SOURCE_DIR/}" >> "$OUTPUT_FILE"
-    
-    # Append the file's content to the output file
-    cat "$file" >> "$OUTPUT_FILE"
-    
-    # Add a newline for separation (optional)
-    echo -e "\n" >> "$OUTPUT_FILE"
-done
-
 echo "All files have been concatenated into '$OUTPUT_FILE'."
-

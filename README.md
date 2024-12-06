@@ -1,6 +1,6 @@
 # Concatenate Files Script
 
-This repository contains `concatenate_files.sh`, a script that iterates through all files in a specified directory and concatenates their contents into a single Markdown or text file. Files located in the `env` folder are automatically skipped.
+This repository contains `main.sh`, a script that iterates through all files in a specified directory and concatenates their contents into a single Markdown or text file. You can specify files or folders to ignore during the concatenation process.
 
 ## Installation
 
@@ -16,8 +16,14 @@ chmod +x ./install.sh
 Once installed, the script can be used globally from anywhere on your computer with the command:
 
 ```bash
-prepare_for_prompt /path/to/source_directory /path/to/output.md
+prepare_for_prompt /path/to/source_directory /path/to/output.md [IGNORE_PATHS...]
 ```
+
+## Example usage
+
+prepare_for_prompt ./documents combined.md env cache tmp
+
+This command concatenates all files in the ./documents directory into combined.md, ignoring any files or folders within env, cache, and tmp directories.
 
 ### Global Installation
 
